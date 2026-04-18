@@ -1,0 +1,81 @@
+# ============================================================
+#  docker-compose.override.yml
+#
+#  Поместите этот файл рядом с docker-compose.yml в /opt/harbor/
+#  ПОСЛЕ первого запуска install.sh.
+#
+#  Docker Compose автоматически применяет override-файл.
+#  Содержит homelab-твики: лимиты ресурсов, restart-политика,
+#  healthcheck и пр.
+# ============================================================
+
+version: '2.3'
+
+services:
+
+  # ---- Nginx (reverse proxy) ----
+  proxy:
+    restart: unless-stopped
+    mem_limit: 256m
+    cpus: 0.5
+
+  # ---- Core (API + UI) ----
+  core:
+    restart: unless-stopped
+    mem_limit: 512m
+    cpus: 1.0
+    environment:
+      # Увеличенный таймаут для медленного железа
+      HTTP_PROXY_TIMEOUT: "300"
+
+  # ---- База данных ----
+  postgresql:
+    restart: unless-stopped
+    mem_limit: 512m
+    cpus: 1.0
+    environment:
+      # Оптимизация для низкого потребления RAM
+      POSTGRES_MAX_CONNECTIONS: "100"
+    volumes:
+      - /data/harbor/database:/var/lib/postgresql/data:z
+
+  # ---- Redis ----
+  redis:
+    restart: unless-stopped
+    mem_limit: 128m
+    cpus: 0.5
+
+  # ---- Job Service ----
+  jobservice:
+    restart: unless-stopped
+    mem_limit: 256m
+    cpus: 0.5
+
+  # ---- Registry (distribution) ----
+  registry:
+    restart: unless-stopped
+    mem_limit: 256m
+    cpus: 0.5
+
+  # ---- Registry Controller ----
+  registryctl:
+    restart: unless-stopped
+    mem_limit: 128m
+    cpus: 0.25
+
+  # ---- Trivy (сканер уязвимостей) ----
+  trivy-adapter:
+    restart: unless-stopped
+    mem_limit: 512m
+    cpus: 1.0
+    environment:
+      # Кэшировать базу Trivy локально
+      SCANNER_TRIVY_CACHE_DIR: "/home/scanner/.cache/trivy"
+    volumes:
+      - /data/harbor/trivy-cache:/home/scanner/.cache/trivy:z
+
+  # ---- Log ----
+  log:
+    restart: unless-stopped
+    mem_limit: 128m
+    cpus: 0.25
